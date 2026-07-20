@@ -1240,13 +1240,19 @@ iface $ethx inet static
     gateway $ipv4_gateway
 EOF
             # dns
-            if list=$(get_current_dns 4); then
-                for dns in $list; do
-                    cat <<EOF >>$conf_file
-    dns-nameservers $dns
+#            if list=$(get_current_dns 4); then
+#                for dns in $list; do
+#                    cat <<EOF >>$conf_file
+#    dns-nameservers $dns
+#EOF
+#                done
+#            fi
+             # shellcheck disable=SC2086
+             if list=$(get_current_dns 4) && [ -n "$list" ]; then
+                 cat <<EOF >>$conf_file
+    dns-nameservers $(echo $list)
 EOF
-                done
-            fi
+             fi
         fi
 
         # ipv6
@@ -1304,11 +1310,17 @@ EOF
         # dns
         # 有 ipv6 但需设置 dns 的情况
         if is_need_manual_set_dnsv6; then
-            for dns in $(get_current_dns 6); do
-                cat <<EOF >>$conf_file
-    dns-nameserver $dns
+#            for dns in $(get_current_dns 6); do
+#                cat <<EOF >>$conf_file
+#    dns-nameserver $dns
+#EOF
+#            done
+             # shellcheck disable=SC2086
+             if list=$(get_current_dns 6) && [ -n "$list" ]; then
+                 cat <<EOF >>$conf_file
+    dns-nameservers $(echo $list)
 EOF
-            done
+             fi
         fi
 
         # 禁用 ra

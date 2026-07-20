@@ -410,6 +410,15 @@ is_have_ipv4_addr && dhcpv4=true || dhcpv4=false
 is_have_ipv6_addr && dhcpv6_or_slaac=true || dhcpv6_or_slaac=false
 is_have_ipv6_gateway && ra_has_gateway=true || ra_has_gateway=false
 
+if [ -n "$ipv4_addr" ] && [ -n "$ipv4_gateway" ]; then
+    if $dhcpv4; then
+        echo "Force static IPv4 (DHCP lease discarded)."
+        should_disable_dhcpv4=true
+        flush_ipv4_config
+    fi
+    dhcpv4=false
+fi
+
 # 如果自动获取的 IP 不是重装前的，则改成静态，使用之前的 IP
 # 只比较 IP，不比较掩码/网关，因为
 # 1. 假设掩码/网关导致无法上网，后面也会检测到并改成静态
