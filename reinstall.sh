@@ -3254,15 +3254,37 @@ build_finalos_cmdline() {
     fi
 }
 
+# 通过公网 IP 探测时区，输出如 Asia/Hong_Kong，失败输出空并返回 1
+get_timezone_by_ip() {
+    local api res
+    for api in \
+        "http://ip-api.com/line/?fields=timezone" \
+        "https://ipapi.co/timezone"; do
+        res=$(command curl -m 5 -fsL "$api" | head -1)
+        if grep -Eq '^[A-Za-z]+(/[A-Za-z0-9_+-]+){1,2}$' <<<"$res"; then
+            echo "$res"
+            return 0
+        fi
+    done
+    return 1
+}
+
 build_extra_cmdline() {
     # 使用 extra_xxx=yyy 而不是 extra.xxx=yyy
     # 因为 debian installer /lib/debian-installer-startup.d/S02module-params
     # 会将 extra.xxx=yyy 写入新系统的 /etc/modprobe.d/local.conf
     # https://answers.launchpad.net/ubuntu/+question/249456
     # https://salsa.debian.org/installer-team/rootskel/-/blob/master/src/lib/debian-installer-startup.d/S02module-params?ref_type=heads
+
+    # 自动探测时区传给安装器（debian.cfg 的 early_command 消费 extra_timezone）
+    # 已通过环境变量指定 timezone 时跳过探测；探测失败则不传，回落到 preseed 文件默认时区
+    if [ -z "$timezone" ]; then
+        timezone=$(get_timezone_by_ip) || true
+    fi
+
     for key in confhome hold force_boot_mode force_cn force_old_windows_setup cloud_image main_disk \
         elts deb_mirror \
-        username ssh_port rdp_port web_port allow_ping; do
+        username ssh_port rdp_port web_port allow_ping timezone; do
         value=${!key}
         if [ -n "$value" ]; then
             is_need_quote "$value" &&
