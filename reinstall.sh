@@ -109,6 +109,7 @@ Usage: $reinstall_____ anolis      7|8|23
                        [--ssh-port    PORT]
                        [--web-port    PORT]
                        [--frpc-config PATH]
+                       [--post-script URL_OR_PATH]
 
                        For Windows Only:
                        [--allow-ping]
@@ -3605,6 +3606,7 @@ EOF
     # 下载 fix-eth-name 脚本
     curl -LO "$confhome/fix-eth-name.sh"
     curl -LO "$confhome/fix-eth-name.service"
+    curl -LO "$confhome/post-script.service"
 
     # 有段时间 kali initrd 删除了原版 wget
     # 但 initrd 的 busybox wget 又不支持 https
@@ -4036,6 +4038,17 @@ This script is outdated, please download reinstall.sh again.
     fi
     if [ -n "$frpc_config" ]; then
         cat "$frpc_config" >$initrd_dir/configs/frpc.conf
+    fi
+
+    if [ -n "$post_script" ]; then
+        if [[ "$post_script" =~ ^https?:// ]]; then
+            curl -L "$post_script" -o $initrd_dir/configs/post-script.sh
+        elif [ -f "$post_script" ]; then
+            cp "$post_script" $initrd_dir/configs/post-script.sh
+        else
+            error_and_exit "Invalid --post-script: $post_script"
+        fi
+        [ -s $initrd_dir/configs/post-script.sh ] || error_and_exit "--post-script content is empty"
     fi
 
     # 收集 cloud-data 打包进 initrd
@@ -4511,6 +4524,7 @@ for o in ci installer debug minimal allow-ping force-cn help \
     allow-ping: \
     commit: \
     frpc-conf: frpc-config: \
+    post-script: \
     target-disk: \
     force-boot-mode: \
     force-old-windows-setup:; do
@@ -4646,6 +4660,11 @@ while true; do
     --passwd | --password)
         [ -n "$2" ] || error_and_exit "Need value for $1"
         password=$2
+        shift 2
+        ;;
+    --post-script)
+        [ -n "$2" ] || error_and_exit "Need value for $1"
+        post_script=$2
         shift 2
         ;;
     --ssh-key | --public-key)

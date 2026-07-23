@@ -1,0 +1,15 @@
+[Unit]
+Description=Run user-provided post-install script once
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+TimeoutStartSec=0
+ExecStart=/bin/sh -c '/usr/local/sbin/reinstall-post-script'
+ExecStartPost=/bin/systemctl --no-reload disable post-script.service
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target
